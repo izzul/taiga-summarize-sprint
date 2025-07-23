@@ -1,0 +1,117 @@
+:root {
+  --background: #f8fafc;
+  --foreground: #18181b;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --primary: #6366f1;
+  --primary-foreground: #fff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #18181b;
+  --radius: 0.75rem;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  line-height: 1.6;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+a:hover {
+  color: #4f46e5;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  display: flex;
+  place-items: center;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+button {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 0.75em 1.5em;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+}
+button:hover {
+  background-color: #4f46e5;
+  border-color: #6366f1;
+}
+button:focus,
+button:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+.card {
+  background: var(--card);
+  color: var(--card-foreground);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.06);
+  padding: 2rem;
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+}
+
+#app {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+input, select, textarea {
+  border-radius: var(--radius);
+  border: 1px solid var(--input);
+  padding: 0.5em 1em;
+  font-size: 1rem;
+  background: var(--muted);
+  color: var(--foreground);
+  margin-bottom: 1rem;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+@media (max-width: 600px) {
+  #app {
+    padding: 1rem;
+  }
+  .card {
+    padding: 1rem;
+  }
+  h1 {
+    font-size: 2rem;
+  }
+}
