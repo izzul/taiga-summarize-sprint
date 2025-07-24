@@ -8,11 +8,18 @@
           style="flex: 1 1 200px; min-width: 150px;" 
           :disabled="loading"
         />
-        <n-button @click="exportCSV" :disabled="loading">Export CSV</n-button>
-        <n-button @click="exportXLSX" :disabled="loading">Export XLSX</n-button>
+        <n-button @click="handleExportCSV" :disabled="loading">Export CSV</n-button>
+        <n-button @click="handleExportXLSX" :disabled="loading">Export XLSX</n-button>
       </div>
-      
+      <!-- View mode toggle -->
+      <div style="margin-bottom: 1rem;">
+        <n-radio-group v-model:value="viewMode" name="viewMode" size="small">
+          <n-radio-button value="stories">By User Story</n-radio-button>
+          <n-radio-button value="summary">Point Summary by User</n-radio-button>
+        </n-radio-group>
+      </div>
       <n-data-table
+        v-if="viewMode === 'stories'"
         class="custom-user-stories-table"
         :columns="tableColumns"
         :data="filteredStories"
@@ -21,7 +28,16 @@
         striped
         :loading="loading"
       />
-      
+      <n-data-table
+        v-else
+        class="custom-user-stories-table"
+        :columns="summaryTableColumns"
+        :data="userPointSummary"
+        :pagination="pagination"
+        :bordered="true"
+        striped
+        :loading="loading"
+      />
       <div style="margin-top: 1rem;">
         <n-button @click="$emit('go-back')" :disabled="loading">
           Back to Sprints
@@ -80,6 +96,52 @@ const tableColumns = computed(() =>
     }
   }))
 )
+
+// Add view mode toggle
+const viewMode = ref('stories') // 'stories' or 'summary'
+
+// Columns for summary table
+const summaryColumns = [
+  { key: 'user', label: 'User' },
+  { key: 'total_points', label: 'Total Points' },
+  { key: 'num_stories', label: 'Stories Involved' }
+]
+
+const summaryTableColumns = computed(() =>
+  summaryColumns.map(col => ({
+    title: col.label,
+    key: col.key,
+    sorter: (a, b) => {
+      if (a[col.key] < b[col.key]) return sortAsc.value ? -1 : 1
+      if (a[col.key] > b[col.key]) return sortAsc.value ? 1 : -1
+      return 0
+    },
+    render: (row) => row[col.key]
+  }))
+)
+
+// Compute user point summary from filteredStories
+const userPointSummary = computed(() => {
+  const summary = {}
+  filteredStories.value.forEach(story => {
+    // story.assignees: comma-separated display names
+    // story.point_sharing: comma-separated points (same order)
+    const assignees = story.assignees.split(',').map(s => s.trim())
+    const points = story.point_sharing.split(',').map(s => parseFloat(s.trim()))
+    assignees.forEach((user, idx) => {
+      if (!summary[user]) {
+        summary[user] = { user, total_points: 0, num_stories: 0 }
+      }
+      summary[user].total_points += points[idx] || 0
+      summary[user].num_stories += 1
+    })
+  })
+  // Round points
+  return Object.values(summary).map(u => ({
+    ...u,
+    total_points: Math.round(u.total_points * 100) / 100
+  }))
+})
 
 watch(() => props.sprintIds, fetchStories, { immediate: true })
 
@@ -167,11 +229,12 @@ async function fetchStories() {
         const pointValues = parsePointDistribution(description, assignees, totalPoints);
         // Sort by points descending
         pointValues.sort((a, b) => b.points - a.points);
+        const taigaDirectUrl = typeof __TAIGA_URL__ !== 'undefined' ? __TAIGA_URL__ : props.taigaUrl
         return {
             id: fullStory.id,
             title: fullStory.subject,
             // Use project slug for generating the URL
-            url: `${props.taigaUrl}/project/${props.projectSlug}/us/${fullStory.ref}`,
+            url: `${taigaDirectUrl}/project/${props.projectSlug}/us/${fullStory.ref}`,
             assignees: pointValues.map(p => p.display).join(', '),
             story_points: totalPoints,
             point_sharing: pointValues.map(p => p.points.toFixed(2)).join(","),
@@ -216,6 +279,16 @@ function sort(key) {
   }
 }
 
+function handleExportCSV() {
+  if (viewMode.value === 'stories') exportCSV()
+  else exportSummaryCSV()
+}
+
+function handleExportXLSX() {
+  if (viewMode.value === 'stories') exportXLSX()
+  else exportSummaryXLSX()
+}
+
 function exportCSV() {
   const rows = [columns.map(c => c.label)]
   filteredStories.value.forEach(story => {
@@ -234,6 +307,26 @@ function exportXLSX() {
   const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
   saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'user_stories.xlsx')
   message.success('XLSX exported successfully!')
+}
+
+function exportSummaryCSV() {
+  const rows = [summaryColumns.map(c => c.label)]
+  userPointSummary.value.forEach(row => {
+    rows.push(summaryColumns.map(c => row[c.key]))
+  })
+  const csv = rows.map(r => r.join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  saveAs(blob, 'user_point_summary.csv')
+  message.success('User point summary CSV exported successfully!')
+}
+
+function exportSummaryXLSX() {
+  const ws = XLSX.utils.json_to_sheet(userPointSummary.value)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'UserPointSummary')
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'user_point_summary.xlsx')
+  message.success('User point summary XLSX exported successfully!')
 }
 
 function parsePointDistribution(description, assignees, totalPoints) {
