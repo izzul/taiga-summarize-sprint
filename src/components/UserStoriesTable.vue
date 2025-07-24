@@ -8,8 +8,14 @@
           style="flex: 1 1 200px; min-width: 150px;" 
           :disabled="loading"
         />
-        <n-button @click="handleExportCSV" :disabled="loading">Export CSV</n-button>
-        <n-button @click="handleExportXLSX" :disabled="loading">Export XLSX</n-button>
+        <n-input
+          v-model:value="projectExportValue"
+          placeholder="Project Name for export"
+          style="width: 180px;"
+          :disabled="loading"
+        />
+        <n-button @click="handleExportCSV" :disabled="loading || !projectExportValue">Export CSV</n-button>
+        <n-button @click="handleExportXLSX" :disabled="loading || !projectExportValue">Export XLSX</n-button>
       </div>
       <!-- View mode toggle -->
       <div style="margin-bottom: 1rem;">
@@ -74,6 +80,7 @@ const sortKey = ref('title')
 const sortAsc = ref(true)
 const error = ref('')
 const loading = ref(false)
+const projectExportValue = ref('')
 
 const pagination = {
   pageSize: 20
@@ -280,19 +287,35 @@ function sort(key) {
 }
 
 function handleExportCSV() {
+  if (!projectExportValue.value.trim()) {
+    message.warning('Please enter a Project Name for export before exporting.')
+    return
+  }
   if (viewMode.value === 'stories') exportCSV()
   else exportSummaryCSV()
 }
 
 function handleExportXLSX() {
+  if (!projectExportValue.value.trim()) {
+    message.warning('Please enter a Project Name for export before exporting.')
+    return
+  }
   if (viewMode.value === 'stories') exportXLSX()
   else exportSummaryXLSX()
 }
 
 function exportCSV() {
-  const rows = [columns.map(c => c.label)]
+  const rows = [["Project", ...columns.map(c => c.label)]]
   filteredStories.value.forEach(story => {
-    rows.push(columns.map(c => story[c.key]))
+    rows.push([
+      projectExportValue.value,
+      ...columns.map(c => {
+        if (c.key === 'point_sharing' || c.key === 'assignees') {
+          return '"' + story[c.key] + '"'
+        }
+        return story[c.key]
+      })
+    ])
   })
   const csv = rows.map(r => r.join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
@@ -301,7 +324,14 @@ function exportCSV() {
 }
 
 function exportXLSX() {
-  const ws = XLSX.utils.json_to_sheet(filteredStories.value)
+  const data = filteredStories.value.map(story => {
+    const row = { Project: projectExportValue.value }
+    columns.forEach(c => {
+      row[c.label] = story[c.key]
+    })
+    return row
+  })
+  const ws = XLSX.utils.json_to_sheet(data)
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'UserStories')
   const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
