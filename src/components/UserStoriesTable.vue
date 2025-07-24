@@ -167,11 +167,12 @@ async function fetchStories() {
         const pointValues = parsePointDistribution(description, assignees, totalPoints);
         // Sort by points descending
         pointValues.sort((a, b) => b.points - a.points);
+        const taigaDirectUrl = typeof __TAIGA_URL__ !== 'undefined' ? __TAIGA_URL__ : props.taigaUrl
         return {
             id: fullStory.id,
             title: fullStory.subject,
             // Use project slug for generating the URL
-            url: `${props.taigaUrl}/project/${props.projectSlug}/us/${fullStory.ref}`,
+            url: `${taigaDirectUrl}/project/${props.projectSlug}/us/${fullStory.ref}`,
             assignees: pointValues.map(p => p.display).join(', '),
             story_points: totalPoints,
             point_sharing: pointValues.map(p => p.points.toFixed(2)).join(","),
