@@ -157,29 +157,6 @@ async function fetchStories() {
   loading.value = true
   try {
     let allStories = []
-    const userCache = new Map() // Cache for fetched users
-    
-    // Function to fetch user by ID with caching
-    async function fetchUserById(userId) {
-      if (userCache.has(userId)) {
-        return userCache.get(userId)
-      }
-      
-      try {
-        const userRes = await fetchWithRefresh(`${props.taigaUrl}/api/v1/users/${userId}`)
-        if (userRes.ok) {
-          const user = await userRes.json()
-          userCache.set(userId, user)
-          return user
-        }
-      } catch (error) {
-        console.warn(`Failed to fetch user ${userId}:`, error)
-      }
-      
-      // Return null if user not found
-      userCache.set(userId, null)
-      return null
-    }
     
     for (const sprintId of props.sprintIds) {
       // Get sprint info for month
@@ -191,15 +168,47 @@ async function fetchStories() {
       const sprintName = sprintInfo.name
       const sprintMonth = sprintInfo.estimated_start ? (new Date(sprintInfo.estimated_start)).getMonth() + 1 : ''
 
-      // Get user stories using project ID
-      const res = await fetchWithRefresh(`${props.taigaUrl}/api/v1/userstories?project=${props.projectId}&milestone=${sprintId}`)
-      if (!res.ok) {
-        throw new Error('Failed to fetch user stories')
-      }
-      const data = await res.json()
+      // Get user stories from sprint info
+      const userStoryIds = sprintInfo.user_stories || [];
+      const data = await Promise.all(
+        userStoryIds.map(async (story) => {
+          const res = await fetchWithRefresh(`${props.taigaUrl}/api/v1/userstories/${story.id}`);
+          if (res.ok) {
+            return await res.json();
+          }
+          return null; // or handle error as you wish
+        })
+      );
+      // Filter out any nulls (failed fetches)
+      const filteredData = data.filter(story => story !== null);
       
-      // Process stories and fetch assignees
-      const processedStories = await Promise.all(data.map(async (story) => {
+      // 1. Collect unique user IDs
+      const uniqueUserIds = new Set();
+      filteredData.forEach(story => {
+        if (Array.isArray(story.assigned_users)) {
+          story.assigned_users.forEach(userId => uniqueUserIds.add(userId));
+        }
+      });
+
+      // 2. Fetch all unique users in parallel and cache them
+      const userCache = new Map();
+      await Promise.all(
+        Array.from(uniqueUserIds).map(async (userId) => {
+          try {
+            const userRes = await fetchWithRefresh(`${props.taigaUrl}/api/v1/users/${userId}`);
+            if (userRes.ok) {
+              const user = await userRes.json();
+              userCache.set(userId, user);
+            }
+          } catch (e) {
+            // Optionally handle error
+            userCache.set(userId, null);
+          }
+        })
+      );
+
+      // 3. When processing each story, use the cached user data
+      const processedStories = await Promise.all(filteredData.map(async (story) => {
         // Fetch full story details to get the description
         let fullStory = story;
         try {
@@ -213,9 +222,8 @@ async function fetchStories() {
         // Handle multiple assignees using assigned_users array
         let assignees = [];
         if (fullStory.assigned_users && Array.isArray(fullStory.assigned_users)) {
-          // Fetch all assignees in parallel
-          const assigneePromises = fullStory.assigned_users.map(async (userId) => {
-            const user = await fetchUserById(userId);
+          assignees = fullStory.assigned_users.map(userId => {
+            const user = userCache.get(userId);
             if (user) {
               return {
                 display: user.full_name_display || user.full_name || user.username || `User ${userId}`,
@@ -224,7 +232,6 @@ async function fetchStories() {
             }
             return { display: `User ${userId}`, username: `user${userId}` };
           });
-          assignees = await Promise.all(assigneePromises);
         }
         
         const description = fullStory.description || "";
