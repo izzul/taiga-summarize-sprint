@@ -169,18 +169,19 @@ async function fetchStories() {
       const sprintMonth = sprintInfo.estimated_start ? (new Date(sprintInfo.estimated_start)).getMonth() + 1 : ''
 
       // Get user stories from sprint info
-      const userStoryIds = sprintInfo.user_stories || [];
-      const data = await Promise.all(
-        userStoryIds.map(async (story) => {
-          const res = await fetchWithRefresh(`${props.taigaUrl}/api/v1/userstories/${story.id}`);
-          if (res.ok) {
-            return await res.json();
-          }
-          return null; // or handle error as you wish
-        })
+      const userStoryIds = sprintInfo.user_stories || [];      
+      const filteredData = await Promise.all(
+        userStoryIds
+          // Only fetch stories with status === 167 and is_closed === true
+          .filter(story => story && story !== null && story.status === 167 && story.is_closed === true)
+          .map(async (story) => {
+            const res = await fetchWithRefresh(`${props.taigaUrl}/api/v1/userstories/${story.id}`);
+            if (res.ok) {
+              return await res.json();
+            }
+            return null; // or handle error as you wish
+          })
       );
-      // Filter out any nulls (failed fetches)
-      const filteredData = data.filter(story => story !== null);
       
       // 1. Collect unique user IDs
       const uniqueUserIds = new Set();
