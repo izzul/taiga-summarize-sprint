@@ -173,7 +173,7 @@ async function fetchStories() {
       const filteredData = await Promise.all(
         userStoryIds
           // Only fetch stories with status === 167 and is_closed === true
-          .filter(story => story && story !== null && story.status === 167 && story.is_closed === true)
+          .filter(story => story && story !== null && story.status_extra_info.name === 'Done' && story.is_closed === true)
           .map(async (story) => {
             const res = await fetchWithRefresh(`${props.taigaUrl}/api/v1/userstories/${story.id}`);
             if (res.ok) {
