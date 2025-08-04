@@ -34,6 +34,7 @@
         striped
         :loading="loading"
       />
+
       <n-data-table
         v-else
         class="custom-user-stories-table"
@@ -65,6 +66,7 @@ const props = defineProps(['token', 'taigaUrl', 'projectId', 'projectSlug', 'spr
 const emit = defineEmits(['go-back'])
 
 const columns = [
+  { key: 'index', label: '#', width: 60 }, // Add this line
   { key: 'title', label: 'User Story Title' },
   { key: 'url', label: 'URL' },
   { key: 'assignees', label: 'Assignees' },
@@ -81,21 +83,39 @@ const sortAsc = ref(true)
 const error = ref('')
 const loading = ref(false)
 const projectExportValue = ref('')
+const currentPage = ref(1)
+const pageSize = ref(20)
 
-const pagination = {
-  pageSize: 20
-}
+const pagination = computed(() => ({
+  page: currentPage.value,
+  pageSize: pageSize.value,
+  showSizePicker: true,
+  pageSizes: [10, 20, 30, 50, 100],
+  onChange: (page) => {
+    currentPage.value = page
+  },
+  onUpdatePageSize: (size) => {
+    pageSize.value = size
+    currentPage.value = 1
+  },
+  prefix: ({ itemCount }) => `Total: ${itemCount}`,
+}))
 
 const tableColumns = computed(() => 
   columns.map(col => ({
     title: col.label,
     key: col.key,
-    sorter: (a, b) => {
+    width: col.width,
+    sorter: col.key === 'index' ? false : (a, b) => {
       if (a[col.key] < b[col.key]) return sortAsc.value ? -1 : 1
       if (a[col.key] > b[col.key]) return sortAsc.value ? 1 : -1
       return 0
     },
-    render: (row) => {
+    render: (row, index) => {
+      if (col.key === 'index') {
+        // Calculate continuous row number based on current page and page size
+        return ((currentPage.value - 1) * pageSize.value) + index + 1
+      }
       if (col.key === 'url') {
         return h('a', { href: row[col.key], target: '_blank' }, 'Link')
       }
@@ -109,6 +129,7 @@ const viewMode = ref('stories') // 'stories' or 'summary'
 
 // Columns for summary table
 const summaryColumns = [
+  { key: 'index', label: '#', width: 60 },
   { key: 'user', label: 'User' },
   { key: 'total_points', label: 'Total Points' },
   { key: 'num_stories', label: 'Stories Involved' }
@@ -118,12 +139,18 @@ const summaryTableColumns = computed(() =>
   summaryColumns.map(col => ({
     title: col.label,
     key: col.key,
-    sorter: (a, b) => {
+    width: col.width,
+    sorter: col.key === 'index' ? false : (a, b) => {
       if (a[col.key] < b[col.key]) return sortAsc.value ? -1 : 1
       if (a[col.key] > b[col.key]) return sortAsc.value ? 1 : -1
       return 0
     },
-    render: (row) => row[col.key]
+    render: (row, index) => {
+      if (col.key === 'index') {
+        return ((currentPage.value - 1) * pageSize.value) + index + 1
+      }
+      return row[col.key]
+    }
   }))
 )
 
