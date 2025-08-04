@@ -318,7 +318,7 @@ function exportCSV() {
     rows.push([
       projectExportValue.value,
       ...columns.map(c => {
-        if (c.key === 'point_sharing' || c.key === 'assignees') {
+        if (c.key === 'title' || c.key === 'point_sharing' || c.key === 'assignees') {
           return '"' + story[c.key] + '"'
         }
         return story[c.key]
