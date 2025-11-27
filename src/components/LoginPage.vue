@@ -31,7 +31,7 @@ const error = ref('')
 const emit = defineEmits(['login-success'])
 
 const formValue = reactive({
-  taigaUrl: 'https://taigaproxy.vercel.app',
+  taigaUrl: 'https://taigageoseismal.ddns.net',
   username: '',
   password: ''
 })
