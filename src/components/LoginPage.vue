@@ -31,7 +31,7 @@ const error = ref('')
 const emit = defineEmits(['login-success'])
 
 const formValue = reactive({
-  taigaUrl: 'https://taigageoseismal.ddns.net',
+  taigaUrl: 'https://taiga.geofisikaugm.id',
   username: '',
   password: ''
 })

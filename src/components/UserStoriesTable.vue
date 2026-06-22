@@ -73,7 +73,8 @@ const columns = [
   { key: 'story_points', label: 'Total Points' },
   { key: 'point_sharing', label: 'Point Sharing' },
   { key: 'sprint', label: 'Sprint' },
-  { key: 'month', label: 'Month' }
+  { key: 'month', label: 'Month' },
+  { key: 'year', label: 'Year' }
 ]
 
 const stories = ref([])
@@ -193,7 +194,13 @@ async function fetchStories() {
       }
       const sprintInfo = await sprintRes.json()
       const sprintName = sprintInfo.name
-      const sprintMonth = sprintInfo.estimated_start ? (new Date(sprintInfo.estimated_start)).getMonth() + 1 : ''
+      let sprintMonth = ''
+      let sprintYear = ''
+      if (sprintInfo.estimated_finish) {
+        const estimated_finish_date = new Date(sprintInfo.estimated_finish)
+        sprintMonth = estimated_finish_date.getMonth() + 1
+        sprintYear = estimated_finish_date.getFullYear()
+      }
 
       // Get user stories from sprint info
       const userStoryIds = sprintInfo.user_stories || [];      
@@ -281,7 +288,8 @@ async function fetchStories() {
             story_points: totalPoints,
             point_sharing: pointValues.map(p => p.points.toFixed(2)).join(","),
             sprint: extractSprintNumber(sprintName),
-            month: sprintMonth
+            month: sprintMonth,
+            year: sprintYear
         };
       }));
       
