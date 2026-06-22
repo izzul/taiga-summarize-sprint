@@ -5,6 +5,6 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   define: {
-    __TAIGA_URL__: JSON.stringify(process.env.TAIGA_URL || 'http://34.101.148.210:9000')
+    __TAIGA_URL__: JSON.stringify(process.env.TAIGA_URL || 'https://taiga.geofisikaugm.id')
   }
 })
